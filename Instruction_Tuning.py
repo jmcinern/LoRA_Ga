@@ -9,7 +9,7 @@ from trl import SFTTrainer, SFTConfig
 # ----- Data: map to chat 'messages' -----
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 # print first 5 samples in train/
-print(ds["train"][:5])
+#print(ds["train"][:5])
 
 def to_messages(ex):
     user = ex["instruction"] + (("\n\n" + ex["context"]) if ex.get("context") else "")
@@ -23,10 +23,11 @@ cols = ds["train"].column_names
 ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 
 # ----- Model / tokenizer (unchanged tokenizer) -----
-model_id = "jmcinern/qwen3-8b-base-cpt/checkpoint-33000"
+model_id = "Qwen/Qwen3-0.6B-base" #"jmcinern/qwen3-8b-base-cpt"
+subfolder = ""#"checkpoint-33000"
 
 
-tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"
@@ -35,7 +36,7 @@ dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
 
 model = AutoModelForCausalLM.from_pretrained(
-    model_id, torch_dtype=dtype, trust_remote_code=True,
+    model_id, torch_dtype=dtype, trust_remote_code=True, subfolder=subfolder
 )
 model.config.use_cache = False
 model.config.pad_token_id = tokenizer.eos_token_id
