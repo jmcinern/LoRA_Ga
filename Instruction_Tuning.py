@@ -8,6 +8,9 @@ from trl import SFTTrainer, SFTConfig
 
 # Load the EN-GA prompt-response dataset from HF
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
+# filter by group_id == "en"
+ds = ds.filter(lambda x: x["group_id"] == "en")
+
 #print(ds["train"][:5])
 
 # pre-trained Qwen-3 model on Irish text
@@ -39,7 +42,7 @@ ds = ds.map(
     lambda ex: {"text": tokenizer.apply_chat_template(ex["messages"], tokenize=False)}
 )
 
-print(ds["train"][:1])
+print(ds["train"][:5])
 
 dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
@@ -62,7 +65,7 @@ model = get_peft_model(model, peft_cfg) # model weights frozen while training.
 # ----- TRL (new API) -----
 cfg = SFTConfig( 
     output_dir="qwen3-8b-lora-bilingual",
-    max_length=40096,                 # <— use max_length, 4096 for test
+    max_length=4096,                 # <— use max_length, 4096 for test
     packing=False,                    # uses max_length for block size 
     group_by_length = True,
     per_device_train_batch_size=1,
