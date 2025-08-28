@@ -72,7 +72,7 @@ cfg = SFTConfig(
 
 trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
     args=cfg,
     train_dataset=ds["train"],
     eval_dataset=ds["test"],
