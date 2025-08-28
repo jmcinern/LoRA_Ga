@@ -14,8 +14,7 @@ lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
 tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-if tok.pad_token is None:
-    tok.pad_token = tok.eos_token
+tok.pad_token = tok.eos_token
 tok.padding_side = "right"
 
 # --- Helpers ---
@@ -35,7 +34,7 @@ def generate(model, prompt: str):
     model.config.use_cache = True
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
-        out = model.generate(ids, **GEN_KW)
+        out = model.generate(ids, **GEN_KW, pad_token_id=tok.eos_token_id)
     return tok.decode(out[0][ids.shape[-1]:]).strip()
 
 prompts = [
