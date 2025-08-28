@@ -38,7 +38,7 @@ def encode_chat(prompt: str):
 
 GEN_KW = dict(
     max_new_tokens=256,
-    do_sample=False,                 # start GREEDY to test stopping
+    do_sample=True,                 # start GREEDY to test stopping
     eos_token_id=[IM_END_ID, EOT_ID],
     pad_token_id=tok.pad_token_id,
     return_dict_in_generate=True,
