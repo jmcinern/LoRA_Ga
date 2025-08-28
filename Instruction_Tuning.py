@@ -28,7 +28,7 @@ cols = ds["train"].column_names
 # use .apply_chat_template() to format messages for the model, conversation special tokens
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
 if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = tokenizer.eos_token # <|endoftext|>
 print(f"Pad token: {tokenizer.pad_token}")
 tokenizer.padding_side = "right"
 
@@ -39,7 +39,7 @@ ds = ds.map(
     lambda ex: {"text": tokenizer.apply_chat_template(ex["messages"], tokenize=False)}
 )
 
-print(ds["train"][:5])
+print(ds["train"][:1])
 
 dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
