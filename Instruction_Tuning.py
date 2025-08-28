@@ -27,7 +27,7 @@ cols = ds["train"].column_names
 ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 
 # use .apply_chat_template() to format messages for the model, conversation special tokens
-ds = ds.map(lambda ex: tokenizer.apply_chat_template(ex["messages"]), batched=True, tokenizer=False)
+ds = ds.map(lambda ex: tokenizer.apply_chat_template(ex["messages"], tokenizer=False), batched=True)
 
 print(ds["train"][:5])
 
