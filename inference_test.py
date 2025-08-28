@@ -25,7 +25,7 @@ def encode_chat(prompt: str):
 
 # Sampling setup (prevents loops) + stop at <|im_end|>
 GEN_KW = dict(
-    max_new_tokens=512,
+    max_new_tokens=5012,
     do_sample=True,            # enables temperature/top_p
     temperature=0.7,
     top_p=0.9,
@@ -64,8 +64,8 @@ base = AutoModelForCausalLM.from_pretrained(
     model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
 )
 print("\n=== BASE MODEL ===")
-for p in prompts:
-    print(f"\n[Prompt] {p}\n[Base]   {generate(base, p)}")
+#for p in prompts:
+    #print(f"\n[Prompt] {p}\n[Base]   {generate(base, p)}")
 
 # --- 2) BASE + LoRA (PEFT adapter) ---
 base_lora = AutoModelForCausalLM.from_pretrained(
