@@ -1,37 +1,48 @@
-# pip install -U transformers>=4.53 datasets trl peft accelerate
+# pip install -U "transformers>=4.53" "trl>=0.9.7" peft accelerate datasets
 
 import torch
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType
 from trl import SFTTrainer, SFTConfig
-from trl.trainer.utils import DataCollatorForCompletionOnlyLM
 
-OMP_NUM_THREADS = 1  
-# ---------- Data ----------
+# ---------------- Data: load & convert to chat messages ----------------
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")  # expects train/test
 
-# ---------- Model & tokenizer (no tokenizer changes saved) ----------
+def to_messages(ex):
+    user = ex["instruction"] + (("\n\n" + ex["context"]) if ex.get("context") else "")
+    return {"messages": [
+        {"role":"system","content":""},
+        {"role":"user","content": user},
+        {"role":"assistant","content": ex["response"]},
+    ]}
+
+cols = ds["train"].column_names
+ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
+
+# ---------------- Model & tokenizer (unchanged tokenizer) ---------------
 model_id = "jmcinern/qwen3-8b-base-cpt"
 subfolder = "checkpoint-33000"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, subfolder=subfolder, trust_remote_code=True)
-# In-memory padding only (no vocab change, no save)
+# runtime-only pad setting (no vocab change, not saved)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"
 
+dtype = (torch.bfloat16 if torch.cuda.is_available()
+         and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
+
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     subfolder=subfolder,
-    torch_dtype=(torch.bfloat16 if torch.cuda.is_available()
-                 and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16),
+    torch_dtype=dtype,
     trust_remote_code=True,
 )
 model.config.use_cache = False
-model.config.pad_token_id = tokenizer.eos_token_id  # runtime-only convenience
+model.config.pad_token_id = tokenizer.eos_token_id
 
-# ---------- LoRA ----------
+# ---------------- LoRA (no quantization) --------------------------------
 lora = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     r=16, lora_alpha=32, lora_dropout=0.1, bias="none",
@@ -39,28 +50,7 @@ lora = LoraConfig(
 )
 model = get_peft_model(model, lora)
 
-# ---------- Qwen3 chat formatting + response-only loss ----------
-def _user_text(inst, ctx):
-    return f"{inst}\n\n{ctx}" if ctx and ctx.strip() else inst
-
-def formatting_func(ex):
-    messages = [
-        {"role":"system","content":""},  # neutral
-        {"role":"user","content": _user_text(ex["instruction"], ex.get("context",""))},
-        {"role":"assistant","content": ex["response"]},
-    ]
-    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-
-assistant_prefix = tokenizer.apply_chat_template(
-    [{"role":"assistant","content":""}], tokenize=False, add_generation_prompt=False
-).lstrip()
-
-collator = DataCollatorForCompletionOnlyLM(
-    response_template=assistant_prefix,
-    tokenizer=tokenizer,
-)
-
-# ---------- Training ----------
+# ---------------- Training (new API: assistant_only_loss) ----------------
 cfg = SFTConfig(
     output_dir="qwen3-8b-lora-bilingual",
     max_seq_length=4096,
@@ -75,12 +65,13 @@ cfg = SFTConfig(
     save_steps=1000,
     evaluation_strategy="steps",
     eval_steps=1000,
-    bf16=(model.dtype == torch.bfloat16),
-    fp16=(model.dtype == torch.float16),
-    packing=True,
+    bf16=(dtype == torch.bfloat16),
+    fp16=(dtype == torch.float16),
+    packing=True,                  # works with assistant_only_loss
     optim="adamw_torch_fused",
     gradient_checkpointing=True,
-    ddp_find_unused_parameters=False,   # good default for DDP
+    ddp_find_unused_parameters=False,
+    assistant_only_loss=True,      # <-- replaces old collator path
 )
 
 trainer = SFTTrainer(
@@ -89,11 +80,8 @@ trainer = SFTTrainer(
     args=cfg,
     train_dataset=ds["train"],
     eval_dataset=ds["test"],
-    formatting_func=formatting_func,
-    data_collator=collator,
+    # No formatting_func needed: TRL detects `messages` and uses tokenizer.chat_template
 )
 
 trainer.train()
-# Save only adapters (tokenizer unchanged on disk)
-model.save_pretrained("qwen3-8b-ga-en-lora")
-
+model.save_pretrained("qwen3-8b-ga-en-lora")   # save adapters only
