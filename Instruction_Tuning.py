@@ -93,4 +93,5 @@ trainer = SFTTrainer(
 
 trainer.train()
 # Save only adapters (tokenizer unchanged on disk)
-# model.save_pretrained("qwen3-8b-ga-en-lora")
+model.save_pretrained("qwen3-8b-ga-en-lora")
+
