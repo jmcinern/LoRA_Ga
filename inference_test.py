@@ -35,7 +35,7 @@ def generate(model, prompt: str):
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
         out = model.generate(ids, **GEN_KW, pad_token_id=tok.eos_token_id)
-    return tok.decode(out[0][ids.shape[-1]:]).strip()
+    return tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False).strip()
 
 prompts = [
     "Cad í príomhchathair na hÉireann?",
