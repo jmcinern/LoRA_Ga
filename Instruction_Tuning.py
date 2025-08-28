@@ -27,7 +27,7 @@ cols = ds["train"].column_names
 ds = ds.map(lambda ex: {"text": tokenizer.apply_chat_template(ex["messages"], tokenize=False)})
 
 # use .apply_chat_template() to format messages for the model, conversation special tokens
-tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
+tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B-base", trust_remote_code=True, subfolder=subfolder)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"
