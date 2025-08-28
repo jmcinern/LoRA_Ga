@@ -8,6 +8,8 @@ from trl import SFTTrainer, SFTConfig
 
 # ----- Data: map to chat 'messages' -----
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
+# print first 5 samples in train/
+print(ds["train"][:5])
 
 def to_messages(ex):
     user = ex["instruction"] + (("\n\n" + ex["context"]) if ex.get("context") else "")
@@ -21,8 +23,7 @@ cols = ds["train"].column_names
 ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 
 # ----- Model / tokenizer (unchanged tokenizer) -----
-model_id = "Qwen/Qwen3-0.6B"#"jmcinern/qwen3-8b-base-cpt/checkpoint-33000"
-
+model_id = "jmcinern/qwen3-8b-base-cpt/checkpoint-33000"
 
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -57,7 +58,7 @@ cfg = SFTConfig(
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
     warmup_ratio=0.03,
-    num_train_epochs=1,
+    num_train_epochs=2,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     logging_steps=20,
@@ -75,11 +76,12 @@ trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
     args=cfg,
-    train_dataset=ds["train"].select(range(1000)),
+    train_dataset=ds["train"],
     eval_dataset=ds["test"],
     # No formatting_func needed; TRL consumes 'messages' and your tokenizer's chat template. :contentReference[oaicite:1]{index=1}
 )
 
 trainer.train()
 model.save_pretrained("qwen3-8b-ga-en-lora")
+tokenizer.save_pretrained("qwen3-8b-ga-en-lora")
 
