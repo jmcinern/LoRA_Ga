@@ -6,11 +6,15 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType
 from trl import SFTTrainer, SFTConfig
 
-# ----- Data: map to chat 'messages' -----
+# Load the EN-GA prompt-response dataset from HF
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
-# print first 5 samples in train/
 #print(ds["train"][:5])
 
+# pre-trained Qwen-3 model on Irish text
+model_id = "Qwen/Qwen3-0.6B-base" #"jmcinern/qwen3-8b-base-cpt"
+subfolder = ""#"checkpoint-33000"
+
+# format the dataset
 def to_messages(ex):
     user = ex["instruction"] + (("\n\n" + ex["context"]) if ex.get("context") else "")
     return {"messages": [
@@ -22,10 +26,10 @@ def to_messages(ex):
 cols = ds["train"].column_names
 ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 
-# ----- Model / tokenizer (unchanged tokenizer) -----
-model_id = "Qwen/Qwen3-0.6B-base" #"jmcinern/qwen3-8b-base-cpt"
-subfolder = ""#"checkpoint-33000"
+# use .apply_chat_template() to format messages for the model, conversation special tokens
+ds = ds.map(lambda ex: tokenizer.apply_chat_template(ex["messages"]), batched=True, tokenizer=False)
 
+print(ds["train"][:5])
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
 if tokenizer.pad_token is None:
@@ -44,14 +48,14 @@ model.config.pad_token_id = tokenizer.eos_token_id
 # ----- LoRA -----
 peft_cfg = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
-    r=16, lora_alpha=32, lora_dropout=0.1, bias="none",
+    r=16, lora_alpha=32, lora_dropout=0.05, bias="none",
     target_modules=["q_proj","k_proj","v_proj","o_proj","up_proj","down_proj","gate_proj"],
 )
-model = get_peft_model(model, peft_cfg)
+
+model = get_peft_model(model, peft_cfg) # model weights frozen while training.
 
 # ----- TRL (new API) -----
-cfg = SFTConfig(
-    chat_template_path = "Qwen/Qwen3-8B", # with generation 
+cfg = SFTConfig( 
     output_dir="qwen3-8b-lora-bilingual",
     max_length=2048,                 # <— use max_length, shorter for test
     packing=True,                    # uses max_length for block size 
@@ -77,12 +81,8 @@ trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
     args=cfg,
-    train_dataset=ds["train"].select(range(2000)),  
+    train_dataset=ds["train"],  
     eval_dataset=ds["test"],
-    # No formatting_func needed; TRL consumes 'messages' and your tokenizer's chat template. :contentReference[oaicite:1]{index=1}
 )
 
 trainer.train()
-model.save_pretrained("qwen3-8b-ga-en-lora")
-tokenizer.save_pretrained("qwen3-8b-ga-en-lora")
-
