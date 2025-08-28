@@ -4,8 +4,10 @@ import torch
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType
-from trl import SFTTrainer, SFTConfig, DataCollatorForCompletionOnlyLM
+from trl import SFTTrainer, SFTConfig
+from trl.trainer.utils import DataCollatorForCompletionOnlyLM
 
+OMP_NUM_THREADS = 1  
 # ---------- Data ----------
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")  # expects train/test
 
