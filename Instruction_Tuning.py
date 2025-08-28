@@ -31,6 +31,9 @@ if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"
 
+# map ds to formatted with to_messages
+ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
+# map to qwen chat template
 ds = ds.map(lambda ex: tokenizer.apply_chat_template(ex["messages"], tokenize=False))
 
 print(ds["train"][:5])
