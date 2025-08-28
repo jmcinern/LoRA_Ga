@@ -62,13 +62,14 @@ model = get_peft_model(model, peft_cfg) # model weights frozen while training.
 # ----- TRL (new API) -----
 cfg = SFTConfig( 
     output_dir="qwen3-8b-lora-bilingual",
-    max_length=2048,                 # <— use max_length, shorter for test
-    packing=True,                    # uses max_length for block size 
+    max_length=40096,                 # <— use max_length, 4096 for test
+    packing=False,                    # uses max_length for block size 
+    group_by_length = True,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
     warmup_ratio=0.03,
-    num_train_epochs=2,
+    num_train_epochs=1,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     logging_steps=20,
@@ -86,7 +87,7 @@ trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
     args=cfg,
-    train_dataset=ds["train"],  
+    train_dataset=ds["train"].select(range(5_000)),  
     eval_dataset=ds["test"],
 )
 
