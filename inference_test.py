@@ -51,7 +51,7 @@ def generate(model, prompt: str):
 
 
 prompts = [
-    "Cad í príomhchathair na hÉireann?",
+    "What is the capital of Ireland?",
 ]
 
 # Pick dtype/device
