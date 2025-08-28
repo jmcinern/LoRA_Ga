@@ -29,6 +29,7 @@ cols = ds["train"].column_names
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
+print(f"Pad token: {tokenizer.pad_token}")
 tokenizer.padding_side = "right"
 
 # map ds to formatted with to_messages
