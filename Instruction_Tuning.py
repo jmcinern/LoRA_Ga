@@ -24,7 +24,7 @@ def to_messages(ex):
     ]}
 
 cols = ds["train"].column_names
-ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
+ds = ds.map(lambda ex: {"text": tokenizer.apply_chat_template(ex["messages"], tokenize=False)})
 
 # use .apply_chat_template() to format messages for the model, conversation special tokens
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, subfolder=subfolder)
