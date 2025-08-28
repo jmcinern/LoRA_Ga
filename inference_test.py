@@ -20,6 +20,9 @@ base_model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True
 )
 
+base_model.resize_token_embeddings(len(tokenizer))
+
+
 # attach LoRA weights
 model = PeftModel.from_pretrained(base_model, lora_path)
 model.eval()
