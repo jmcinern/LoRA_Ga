@@ -48,6 +48,7 @@ model = get_peft_model(model, peft_cfg)
 
 # ----- TRL (new API) -----
 cfg = SFTConfig(
+    chat_template_path = "Qwen/Qwen3-8B", # with generation 
     output_dir="qwen3-8b-lora-bilingual",
     max_length=4096,                 # <— use max_length
     packing=True,                    # uses max_length for block size
