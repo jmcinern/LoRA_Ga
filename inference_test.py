@@ -28,7 +28,7 @@ def encode_chat(prompt: str):
         return_tensors="pt"
     )
 
-GEN_KW = dict(max_new_tokens=128, do_sample=False, temperature=0.0)
+GEN_KW = dict(max_new_tokens=128, do_sample=False, temperature=0.6)
 
 def generate(model, prompt: str):
     model.eval()
@@ -36,12 +36,11 @@ def generate(model, prompt: str):
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
         out = model.generate(ids, **GEN_KW)
-    return tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=True).strip()
+    return tok.decode(out[0][ids.shape[-1]:]).strip()
 
 prompts = [
-    "Translate to Irish: Good morning! How are you?",
-    "Explain in Irish, briefly, what a neural network is.",
-    "Give the Irish for: 'Where is the nearest bus stop?'"
+    "Cad í príomhchathair na hÉireann?",
+    "Explain what a neural network is.",
 ]
 
 # Pick dtype/device
@@ -67,16 +66,3 @@ print("\n=== BASE + LoRA (adapter) ===")
 for p in prompts:
     print(f"\n[Prompt] {p}\n[LoRA]   {generate(base_lora, p)}")
 
-# --- 3) (Optional) Merge LoRA into base for single-file inference ---
-merged = AutoModelForCausalLM.from_pretrained(
-    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
-)
-merged = PeftModel.from_pretrained(merged, lora_dir)
-merged = merged.merge_and_unload()  # applies LoRA deltas into base weights
-print("\n=== MERGED (Base with LoRA deltas applied) ===")
-for p in prompts:
-    print(f"\n[Prompt] {p}\n[Merged] {generate(merged, p)}")
-
-# Optionally save the merged model for deployment:
-# merged.save_pretrained("qwen3-0.6b-base-lora-merged")
-# tok.save_pretrained("qwen3-0.6b-base-lora-merged")
