@@ -9,7 +9,7 @@ from trl import SFTTrainer, SFTConfig
 # Load the EN-GA prompt-response dataset from HF
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 # filter by group_id == "en"
-ds = ds.filter(lambda x: x["group_id"] == "en")
+ds = ds.filter(lambda x: x["lang"] == "en")
 
 #print(ds["train"][:5])
 
