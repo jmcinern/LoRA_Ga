@@ -1,63 +1,82 @@
-import torch
+# Inference: Base vs Base+LoRA (and merged)
+# pip install -U "transformers>=4.53" "trl>=0.9.7" peft accelerate
+
+import os, glob, torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
-# ---- Paths ----
-base_model_id = "Qwen/Qwen3-0.6B-base"
-lora_path = "qwen3-8b-ga-en-lora"
+model_id = "Qwen/Qwen3-0.6B-base"
+output_dir = "qwen3-8b-lora-bilingual"   # same as your SFTConfig.output_dir
+# If you saved checkpoints during training, pick the latest; else it uses output_dir
+ckpts = sorted(glob.glob(os.path.join(output_dir, "checkpoint-*")),
+               key=lambda p: int(p.split("-")[-1]))
+lora_dir = ckpts[-1] if ckpts else output_dir
 
-# ---- Tokenizer ----
-tokenizer = AutoTokenizer.from_pretrained(lora_path, trust_remote_code=True)
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
-tokenizer.padding_side = "right"
+# --- Tokenizer ---
+tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+if tok.pad_token is None:
+    tok.pad_token = tok.eos_token
+tok.padding_side = "right"
 
+# --- Helpers ---
+def encode_chat(prompt: str):
+    messages = [{"role": "user", "content": prompt}]
+    return tok.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        tokenize=True,
+        return_tensors="pt"
+    )
+
+GEN_KW = dict(max_new_tokens=128, do_sample=False, temperature=0.0)
+
+def generate(model, prompt: str):
+    model.eval()
+    model.config.use_cache = True
+    ids = encode_chat(prompt).to(model.device)
+    with torch.no_grad():
+        out = model.generate(ids, **GEN_KW)
+    return tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=True).strip()
+
+prompts = [
+    "Translate to Irish: Good morning! How are you?",
+    "Explain in Irish, briefly, what a neural network is.",
+    "Give the Irish for: 'Where is the nearest bus stop?'"
+]
+
+# Pick dtype/device
 dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
+device_map = "auto" if torch.cuda.is_available() else None
+torch.manual_seed(0)
 
-# ---- Base model ----
-base_model = AutoModelForCausalLM.from_pretrained(
-    base_model_id,
-    torch_dtype=dtype,
-    trust_remote_code=True
+# --- 1) BASE ---
+base = AutoModelForCausalLM.from_pretrained(
+    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
 )
-base_model.resize_token_embeddings(len(tokenizer))
-base_model.eval()
+print("\n=== BASE MODEL ===")
+for p in prompts:
+    print(f"\n[Prompt] {p}\n[Base]   {generate(base, p)}")
 
-# ---- LoRA model ----
-lora_model = PeftModel.from_pretrained(
-    AutoModelForCausalLM.from_pretrained(
-        base_model_id,
-        torch_dtype=dtype,
-        trust_remote_code=True
-    ),
-    lora_path
+# --- 2) BASE + LoRA (PEFT adapter) ---
+base_lora = AutoModelForCausalLM.from_pretrained(
+    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
 )
-lora_model.resize_token_embeddings(len(tokenizer))
-lora_model.eval()
+base_lora = PeftModel.from_pretrained(base_lora, lora_dir)
+print("\n=== BASE + LoRA (adapter) ===")
+for p in prompts:
+    print(f"\n[Prompt] {p}\n[LoRA]   {generate(base_lora, p)}")
 
-# ---- Helper: run inference ----
-def chat(model, prompt, max_new_tokens=128):
-    inputs = tokenizer.apply_chat_template(
-        [{"role":"user","content":prompt}],
-        add_generation_prompt=True,
-        return_tensors="pt"
-    ).to(model.device)
+# --- 3) (Optional) Merge LoRA into base for single-file inference ---
+merged = AutoModelForCausalLM.from_pretrained(
+    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
+)
+merged = PeftModel.from_pretrained(merged, lora_dir)
+merged = merged.merge_and_unload()  # applies LoRA deltas into base weights
+print("\n=== MERGED (Base with LoRA deltas applied) ===")
+for p in prompts:
+    print(f"\n[Prompt] {p}\n[Merged] {generate(merged, p)}")
 
-    with torch.no_grad():
-        output = model.generate(
-            inputs,
-            max_new_tokens=max_new_tokens,
-            temperature=0.7,
-            top_p=0.9,
-        )
-    return tokenizer.decode(output[0], skip_special_tokens=True)
-
-# ---- Compare outputs ----
-prompt = "What is the capital of Ireland?"
-
-print("\n--- Base model ---")
-print(chat(base_model, prompt))
-
-print("\n--- LoRA-tuned model ---")
-print(chat(lora_model, prompt))
+# Optionally save the merged model for deployment:
+# merged.save_pretrained("qwen3-0.6b-base-lora-merged")
+# tok.save_pretrained("qwen3-0.6b-base-lora-merged")
