@@ -45,7 +45,7 @@ def generate(model, prompt: str):
     with torch.no_grad():
         out = model.generate(ids, **GEN_KW)
     text = tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False)
-    return text.split("<|im_end|>")[0].strip()  # hide the marker
+    return text  # hide the marker
 
 
 prompts = [
