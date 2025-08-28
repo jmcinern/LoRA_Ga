@@ -28,7 +28,7 @@ model = PeftModel.from_pretrained(base_model, lora_path)
 model.eval()
 
 # ---- Inference example ----
-prompt = "Translate this to Irish: 'Hello, how are you?'"
+prompt = "What is the capital of Ireland?"
 
 inputs = tokenizer.apply_chat_template(
     [{"role":"user","content":prompt}],
