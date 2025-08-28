@@ -6,7 +6,7 @@ from peft import PeftModel
 # --- Choose a BASE to test ---
 # 1) Known instruct checkpoint (no LoRA) to validate your script:
 #    e.g. replace with the exact instruct variant you have locally.
-model_id = "Qwen/Qwen3-1.7B-Instruct"   # <- use a real instruct ckpt you have
+model_id = "Qwen/Qwen3-1.7B"   # <- use a real instruct ckpt you have
 use_lora = False
 
 # 2) Or load your LoRA adapter (must match its base):
