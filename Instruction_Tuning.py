@@ -11,7 +11,7 @@ ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 #print(ds["train"][:5])
 
 # pre-trained Qwen-3 model on Irish text
-model_id = "Qwen/Qwen3-0.6B-base" #"jmcinern/qwen3-8b-base-cpt"
+model_id = "Qwen/Qwen3-1.7B-base" #"jmcinern/qwen3-8b-base-cpt"
 subfolder = ""#"checkpoint-33000"
 
 # format the dataset
@@ -40,8 +40,6 @@ ds = ds.map(
 
 print(ds["train"][:5])
 
-
-
 dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
 
@@ -69,7 +67,7 @@ cfg = SFTConfig(
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
     warmup_ratio=0.03,
-    num_train_epochs=1,
+    num_train_epochs=2,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     logging_steps=20,
