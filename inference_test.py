@@ -27,7 +27,7 @@ def encode_chat(prompt: str):
         return_tensors="pt"
     )
 
-GEN_KW = dict(max_new_tokens=128, do_sample=False, temperature=0.6)
+GEN_KW = dict(max_new_tokens=1000, do_sample=False, temperature=0.6)
 
 def generate(model, prompt: str):
     model.eval()
