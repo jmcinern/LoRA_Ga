@@ -51,7 +51,7 @@ model = get_peft_model(model, peft_cfg)
 cfg = SFTConfig(
     chat_template_path = "Qwen/Qwen3-8B", # with generation 
     output_dir="qwen3-8b-lora-bilingual",
-    max_length=4096,                 # <— use max_length
+    max_length=2048,                 # <— use max_length, shorter for test
     packing=True,                    # uses max_length for block size 
     per_device_train_batch_size=1,
     gradient_accumulation_steps=16,
@@ -75,7 +75,7 @@ trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
     args=cfg,
-    train_dataset=ds["train"],
+    train_dataset=ds["train"].select(range(1000)),
     eval_dataset=ds["test"],
     # No formatting_func needed; TRL consumes 'messages' and your tokenizer's chat template. :contentReference[oaicite:1]{index=1}
 )
