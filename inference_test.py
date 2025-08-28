@@ -45,6 +45,7 @@ def generate(model, prompt: str):
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
         out = model.generate(ids, **GEN_KW)
+        print(out)
     text = tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False)
     return text  # hide the marker
 
