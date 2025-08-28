@@ -5,7 +5,7 @@ import os, glob, torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
-model_id = "Qwen/Qwen3-0.6B-base"
+model_id = "Qwen/Qwen3-1.7B-base"
 output_dir = "qwen3-8b-lora-bilingual"   # same as your SFTConfig.output_dir
 # If you saved checkpoints during training, pick the latest; else it uses output_dir
 ckpts = sorted(glob.glob(os.path.join(output_dir, "checkpoint-*")),
@@ -14,6 +14,7 @@ lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
 tok = AutoTokenizer.from_pretrained(lora_dir, trust_remote_code=True)
+print(tok.all_special_tokens)
 tok.pad_token = tok.eos_token or "<|endoftext|>"
 tok.padding_side = "right"
 IM_END_ID = tok.convert_tokens_to_ids("<|im_end|>")  # EOS we want
