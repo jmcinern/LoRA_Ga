@@ -61,7 +61,7 @@ cfg = SFTConfig(
     weight_decay=0.01,
     logging_steps=20,
     save_steps=1000,
-    evaluation_strategy="steps",
+    eval_strategy="steps",
     eval_steps=1000,
     bf16=(dtype == torch.bfloat16),
     fp16=(dtype == torch.float16),
