@@ -14,7 +14,7 @@ lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
 tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-print(tok.eos_token)
+tok.eos_token = "<|im_end|>"  # chat template for LoRA training marks turn taking with <|im_end|> # default is "<|endoftext|>"
 tok.pad_token = tok.eos_token
 tok.padding_side = "right"
 
