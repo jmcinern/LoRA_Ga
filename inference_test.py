@@ -1,79 +1,81 @@
-# Inference: Base vs Base+LoRA (and merged)
 # pip install -U "transformers>=4.53" "trl>=0.9.7" peft accelerate
-
-import os, glob, torch
+import os, json, glob, torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
-model_id = "Qwen/Qwen3-1.7B-base"
-output_dir = "qwen3-8b-lora-bilingual"   # same as your SFTConfig.output_dir
-# If you saved checkpoints during training, pick the latest; else it uses output_dir
+# --- Choose a BASE to test ---
+# 1) Known instruct checkpoint (no LoRA) to validate your script:
+#    e.g. replace with the exact instruct variant you have locally.
+model_id = "Qwen/Qwen3-1.7B-Instruct"   # <- use a real instruct ckpt you have
+use_lora = False
+
+# 2) Or load your LoRA adapter (must match its base):
+output_dir = "qwen3-8b-lora-bilingual"
 ckpts = sorted(glob.glob(os.path.join(output_dir, "checkpoint-*")),
                key=lambda p: int(p.split("-")[-1]))
 lora_dir = ckpts[-1] if ckpts else output_dir
+if use_lora:
+    with open(os.path.join(lora_dir, "adapter_config.json")) as f:
+        base_in_adapter = json.load(f).get("base_model_name_or_path")
+    assert base_in_adapter, "adapter_config.json missing base_model_name_or_path"
+    model_id = base_in_adapter
 
-# --- Tokenizer ---
-tok = AutoTokenizer.from_pretrained(lora_dir, trust_remote_code=True)
-print(tok.all_special_tokens)
-tok.pad_token = tok.eos_token or "<|endoftext|>"
+# --- Tokenizer (load from BASE, not adapter) ---
+tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 tok.padding_side = "right"
-IM_END_ID = tok.convert_tokens_to_ids("<|im_end|>")  # EOS we want
+if tok.pad_token is None:
+    tok.pad_token = tok.eos_token or "<|endoftext|>"
+
+IM_END_ID = tok.convert_tokens_to_ids("<|im_end|>")
+EOT_ID    = tok.convert_tokens_to_ids("<|endoftext|>")
+print("specials:", tok.all_special_tokens)
+print("IM_END_ID:", IM_END_ID, "EOT_ID:", EOT_ID)
 
 def encode_chat(prompt: str):
-    messages = [{"role": "user", "content": prompt}]
-    return tok.apply_chat_template(messages, add_generation_prompt=True,
+    msgs = [{"role": "user", "content": prompt}]
+    return tok.apply_chat_template(msgs, add_generation_prompt=True,
                                    tokenize=True, return_tensors="pt")
 
-# Sampling setup (prevents loops) + stop at <|im_end|>
 GEN_KW = dict(
-    max_new_tokens=1000,
-    do_sample=True,            # enables temperature/top_p
-    temperature=0.7,
-    top_p=0.9,
-    top_k=50,
-    repetition_penalty=1.15,
-    no_repeat_ngram_size=4,
-    eos_token_id=IM_END_ID,    # ① stop on <|im_end|>
-    pad_token_id=tok.eos_token_id,
+    max_new_tokens=256,
+    do_sample=False,                 # start GREEDY to test stopping
+    eos_token_id=[IM_END_ID, EOT_ID],
+    pad_token_id=tok.pad_token_id,
+    return_dict_in_generate=True,
 )
 
 def generate(model, prompt: str):
     model.eval()
-    model.config.use_cache = True
-    # also set on config to be safe
-    model.generation_config.eos_token_id = IM_END_ID
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
         out = model.generate(ids, **GEN_KW)
-        print(out)
-    text = tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False)
-    return text  # hide the marker
+    seq = out.sequences[0]
+    gen = seq[ids.shape[-1]:]
+    tail = tok.convert_ids_to_tokens(gen[-32:].tolist())
+    print("stopped_early:", getattr(out, "stopped_early", None))
+    print("finish_reason:", getattr(out, "sequences_scores", None))  # HF lacks finish_reason; inspect tokens instead
+    print("tail tokens:", tail)
+    print("last_id==IM_END:", gen.numel()>0 and gen[-1].item()==IM_END_ID)
+    text = tok.decode(gen, skip_special_tokens=False)
+    return text
 
-
-prompts = [
-    "What is the capital of Ireland?",
-]
-
-# Pick dtype/device
+# --- Load model(s) ---
 dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
 device_map = "auto" if torch.cuda.is_available() else None
-torch.manual_seed(0)
+base = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True,
+                                            torch_dtype=dtype, device_map=device_map)
 
-# --- 1) BASE ---
-base = AutoModelForCausalLM.from_pretrained(
-    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
-)
-print("\n=== BASE MODEL ===")
-#for p in prompts:
-    #print(f"\n[Prompt] {p}\n[Base]   {generate(base, p)}")
+if use_lora:
+    base = PeftModel.from_pretrained(base, lora_dir)
 
-# --- 2) BASE + LoRA (PEFT adapter) ---
-base_lora = AutoModelForCausalLM.from_pretrained(
-    model_id, trust_remote_code=True, torch_dtype=dtype, device_map=device_map
-)
-base_lora = PeftModel.from_pretrained(base_lora, lora_dir)
-print("\n=== BASE + LoRA (adapter) ===")
+# --- Test prompts ---
+prompts = ["What is the capital of Ireland?"]
+
 for p in prompts:
-    print(f"\n[Prompt] {p}\n[LoRA]   {generate(base_lora, p)}")
+    print("\n[Prompt]", p)
+    out = generate(base, p)
+    print("[Output]\n", out)
 
+# Optional: then enable sampling to see behavior
+# GEN_KW.update(dict(do_sample=True, temperature=0.7, top_p=0.9, no_repeat_ngram_size=4))
