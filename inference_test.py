@@ -14,6 +14,7 @@ lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
 tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+print(tok.eos_token)
 tok.pad_token = tok.eos_token
 tok.padding_side = "right"
 
