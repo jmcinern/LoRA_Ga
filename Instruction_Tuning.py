@@ -6,8 +6,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType
 from trl import SFTTrainer, SFTConfig
 
-# ---------------- Data: load & convert to chat messages ----------------
-ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")  # expects train/test
+# ----- Data: map to chat 'messages' -----
+ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 
 def to_messages(ex):
     user = ex["instruction"] + (("\n\n" + ex["context"]) if ex.get("context") else "")
@@ -20,12 +20,11 @@ def to_messages(ex):
 cols = ds["train"].column_names
 ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 
-# ---------------- Model & tokenizer (unchanged tokenizer) ---------------
+# ----- Model / tokenizer (unchanged tokenizer) -----
 model_id = "jmcinern/qwen3-8b-base-cpt"
 subfolder = "checkpoint-33000"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, subfolder=subfolder, trust_remote_code=True)
-# runtime-only pad setting (no vocab change, not saved)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"
@@ -34,26 +33,25 @@ dtype = (torch.bfloat16 if torch.cuda.is_available()
          and torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16)
 
 model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    subfolder=subfolder,
-    torch_dtype=dtype,
-    trust_remote_code=True,
+    model_id, subfolder=subfolder, torch_dtype=dtype, trust_remote_code=True,
 )
 model.config.use_cache = False
 model.config.pad_token_id = tokenizer.eos_token_id
 
-# ---------------- LoRA (no quantization) --------------------------------
-lora = LoraConfig(
+# ----- LoRA -----
+peft_cfg = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     r=16, lora_alpha=32, lora_dropout=0.1, bias="none",
     target_modules=["q_proj","k_proj","v_proj","o_proj","up_proj","down_proj","gate_proj"],
 )
-model = get_peft_model(model, lora)
+model = get_peft_model(model, peft_cfg)
 
-# ---------------- Training (new API: assistant_only_loss) ----------------
+# ----- TRL (new API) -----
 cfg = SFTConfig(
     output_dir="qwen3-8b-lora-bilingual",
-    max_seq_length=4096,
+    max_length=4096,                 # <— use max_length
+    packing=True,                    # uses max_length for block size
+    assistant_only_loss=True,        # response-only loss (chat) 
     per_device_train_batch_size=1,
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
@@ -67,11 +65,9 @@ cfg = SFTConfig(
     eval_steps=1000,
     bf16=(dtype == torch.bfloat16),
     fp16=(dtype == torch.float16),
-    packing=True,                  # works with assistant_only_loss
     optim="adamw_torch_fused",
     gradient_checkpointing=True,
     ddp_find_unused_parameters=False,
-    assistant_only_loss=True,      # <-- replaces old collator path
 )
 
 trainer = SFTTrainer(
@@ -80,8 +76,9 @@ trainer = SFTTrainer(
     args=cfg,
     train_dataset=ds["train"],
     eval_dataset=ds["test"],
-    # No formatting_func needed: TRL detects `messages` and uses tokenizer.chat_template
+    # No formatting_func needed; TRL consumes 'messages' and your tokenizer's chat template. :contentReference[oaicite:1]{index=1}
 )
 
 trainer.train()
-model.save_pretrained("qwen3-8b-ga-en-lora")   # save adapters only
+model.save_pretrained("qwen3-8b-ga-en-lora")
+
