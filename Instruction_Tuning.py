@@ -8,5 +8,6 @@ model = AutoModelForCausalLM.from_pretrained(
     model_name,
     cache_dir=cache_path,
     trust_remote_code=True, 
-    torch_dtype=torch.float16
+    torch_dtype=torch.float16,
+    subfolder="checkpoint-33000"
 )
