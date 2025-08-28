@@ -78,4 +78,4 @@ for p in prompts:
     print("[Output]\n", out)
 
 # Optional: then enable sampling to see behavior
-# GEN_KW.update(dict(do_sample=True, temperature=0.7, top_p=0.9, no_repeat_ngram_size=4))
+GEN_KW.update(dict(do_sample=True, temperature=0.7, top_p=0.9, no_repeat_ngram_size=4))
