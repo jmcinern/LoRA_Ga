@@ -13,7 +13,7 @@ ckpts = sorted(glob.glob(os.path.join(output_dir, "checkpoint-*")),
 lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
-tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+tok = AutoTokenizer.from_pretrained(lora_dir, trust_remote_code=True)
 tok.pad_token = tok.eos_token or "<|endoftext|>"
 tok.padding_side = "right"
 IM_END_ID = tok.convert_tokens_to_ids("<|im_end|>")  # EOS we want
@@ -25,7 +25,7 @@ def encode_chat(prompt: str):
 
 # Sampling setup (prevents loops) + stop at <|im_end|>
 GEN_KW = dict(
-    max_new_tokens=5012,
+    max_new_tokens=1000,
     do_sample=True,            # enables temperature/top_p
     temperature=0.7,
     top_p=0.9,
@@ -50,7 +50,6 @@ def generate(model, prompt: str):
 
 prompts = [
     "Cad í príomhchathair na hÉireann?",
-    "Explain what a neural network is.",
 ]
 
 # Pick dtype/device
