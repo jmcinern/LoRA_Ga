@@ -14,29 +14,39 @@ lora_dir = ckpts[-1] if ckpts else output_dir
 
 # --- Tokenizer ---
 tok = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-tok.eos_token = "<|im_end|>"  # chat template for LoRA training marks turn taking with <|im_end|> # default is "<|endoftext|>"
-tok.pad_token = tok.eos_token
+tok.pad_token = tok.eos_token or "<|endoftext|>"
 tok.padding_side = "right"
+IM_END_ID = tok.convert_tokens_to_ids("<|im_end|>")  # EOS we want
 
-# --- Helpers ---
 def encode_chat(prompt: str):
     messages = [{"role": "user", "content": prompt}]
-    return tok.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_tensors="pt"
-    )
+    return tok.apply_chat_template(messages, add_generation_prompt=True,
+                                   tokenize=True, return_tensors="pt")
 
-GEN_KW = dict(max_new_tokens=1000, do_sample=False, temperature=0.6)
+# Sampling setup (prevents loops) + stop at <|im_end|>
+GEN_KW = dict(
+    max_new_tokens=512,
+    do_sample=True,            # enables temperature/top_p
+    temperature=0.7,
+    top_p=0.9,
+    top_k=50,
+    repetition_penalty=1.15,
+    no_repeat_ngram_size=4,
+    eos_token_id=IM_END_ID,    # ① stop on <|im_end|>
+    pad_token_id=tok.eos_token_id,
+)
 
 def generate(model, prompt: str):
     model.eval()
     model.config.use_cache = True
+    # also set on config to be safe
+    model.generation_config.eos_token_id = IM_END_ID
     ids = encode_chat(prompt).to(model.device)
     with torch.no_grad():
-        out = model.generate(ids, **GEN_KW, pad_token_id=tok.eos_token_id, repetition_penalty=1.2)
-    return tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False).strip()
+        out = model.generate(ids, **GEN_KW)
+    text = tok.decode(out[0][ids.shape[-1]:], skip_special_tokens=False)
+    return text.split("<|im_end|>")[0].strip()  # hide the marker
+
 
 prompts = [
     "Cad í príomhchathair na hÉireann?",
