@@ -72,7 +72,7 @@ cfg = SFTConfig(
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
     warmup_ratio=0.03,
-    num_train_epochs=1,
+    num_train_epochs=3,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     logging_steps=20,
@@ -91,7 +91,7 @@ trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
     args=cfg,
-    train_dataset=ds["train"].select(range(5_000)),  
+    train_dataset=ds["train"],  
     eval_dataset=ds["test"],
 )
 
