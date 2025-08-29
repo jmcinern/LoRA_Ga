@@ -11,7 +11,7 @@ from trl import SFTTrainer, SFTConfig
 # ---------------------------
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 # get first 1K samples
-ds = ds["train"].select([i for i in list(range(1000)))
+ds = ds["train"].select([i for i in list(range(1000))])
 print("[INFO] Original splits:", list(ds.keys()))
 for split in ds:
     print(f"[INFO] {split} size before filter:", len(ds[split]))
