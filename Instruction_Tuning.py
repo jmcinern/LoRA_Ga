@@ -64,7 +64,7 @@ model = get_peft_model(model, peft_cfg) # model weights frozen while training.
 
 # ----- TRL (new API) -----
 cfg = SFTConfig( 
-    output_dir="qwen3-8b-lora-bilingual",
+    output_dir="qwen3-8b-lora-en_3e_eos",
     max_length=4096,                 # <— use max_length, 4096 for test
     packing=False,                    # uses max_length for block size 
     group_by_length = True,
