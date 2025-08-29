@@ -9,7 +9,7 @@ from peft import PeftModel
 BASE_ID = "Qwen/Qwen3-1.7B-Base"
 OUTPUT_DIR = "qwen3-1p7b-lora-ga"   # must match your training output_dir
 TEST_PROMPT = "What is the capital city of America?"
-MAX_NEW_TOKENS = 128
+MAX_NEW_TOKENS = 256
 TEMPERATURE = 0.7
 TOP_P = 0.95
 # ---------------------------------
@@ -55,7 +55,7 @@ def main():
         messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
     
-    #prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
+    prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
@@ -63,11 +63,11 @@ def main():
         outputs = model.generate(
             **inputs,
             max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=True,
-            temperature=TEMPERATURE,
-            top_p=TOP_P,
-            eos_token_id=tok.eos_token_id,
-            pad_token_id=tok.pad_token_id,
+            do_sample=False,
+            #temperature=TEMPERATURE,
+            #top_p=TOP_P,
+            #eos_token_id=tok.eos_token_id,
+            #pad_token_id=tok.pad_token_id,
         )
 
     gen_ids = outputs[0][inputs.input_ids.shape[1]:]
