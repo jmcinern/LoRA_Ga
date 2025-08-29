@@ -77,10 +77,5 @@ def main():
     print("\n=== Model reply ===")
     print(text.strip())
 
-    print("\n=== Special Tokens and IDs ===")
-    ids = tok.convert_tokens_to_ids
-    im_end, th, th_end = ids("<|im_end|>"), ids("<think>"), ids("</think>")
-    print("present:", im_end in gen_ids, th in gen_ids, th_end in gen_ids)
-
 if __name__ == "__main__":
     main()
