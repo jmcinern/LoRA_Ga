@@ -12,8 +12,7 @@ from trl import SFTTrainer, SFTConfig
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
 print("[INFO] Original splits:", list(ds.keys()))
 
-# get first 1K samples
-ds = ds["train"].select([i for i in list(range(1000))])
+
 # print ds first sample
 print("[DEBUG] First sample:", ds[0])
 for split in ds:
@@ -103,8 +102,10 @@ sft_cfg = SFTConfig(
     num_train_epochs=1,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
+    max_steps=100,
     logging_steps=20,
-    save_steps=200,
+    save_strategy="steps",
+    save_steps=20,
     bf16=True,
     evaluation_strategy=evaluation_strategy,
     eval_steps=100,
