@@ -63,11 +63,11 @@ def main():
         outputs = model.generate(
             **inputs,
             max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=False,
-            #temperature=TEMPERATURE,
-            #top_p=TOP_P,
-            #eos_token_id=tok.eos_token_id,
-            #pad_token_id=tok.pad_token_id,
+            do_sample=True,
+            temperature=TEMPERATURE,
+            top_p=TOP_P,
+            eos_token_id=tok.eos_token_id,
+            pad_token_id=tok.pad_token_id,
         )
 
     for i in range(10):
