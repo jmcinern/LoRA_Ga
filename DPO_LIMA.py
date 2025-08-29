@@ -62,7 +62,7 @@ trainer = DPOTrainer(
     ref_model=None,  # TRL clones base model internally
     args=training_args,
     train_dataset=dataset,
-    tokenizer=tokenizer
+    processing_class=tokenizer
 )
 
 # -------------------------
