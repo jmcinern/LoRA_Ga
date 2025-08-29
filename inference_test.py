@@ -52,6 +52,7 @@ def main():
     prompt = tok.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
+    
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
