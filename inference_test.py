@@ -49,8 +49,9 @@ GEN_KW = dict(
 def generate(model, prompt: str):
     model.eval()
     ids = encode_chat(prompt).to(model.device)
+    attn = torch.ones_like(ids)
     with torch.no_grad():
-        out = model.generate(ids, **GEN_KW)
+        out = model.generate(ids, **GEN_KW, attention_mask=attn)
     seq = out.sequences[0]
     gen = seq[ids.shape[-1]:]
     tail = tok.convert_ids_to_tokens(gen[-32:].tolist())
