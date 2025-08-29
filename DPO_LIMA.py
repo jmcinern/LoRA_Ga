@@ -1,75 +1,64 @@
-# train.py
-
+# train_dpo.py
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from trl import DPOTrainer, DPOConfig
 
-# -------------------------
-# 1. Load and preprocess dataset
-# -------------------------
-print("Loading dataset...")
-raw_dataset = load_dataset("jmcinern/LIMA_ga",
-                  data_files={"translated_IRT_ga.jsonl"}
-)
-                  
+MODEL_ID = "jmcinern/qwen3-8b-base-cpt"
+SUBFOLDER = "checkpoint-33000"
+DATASET = "jmcinern/LIMA_ga"
+DATA_FILE = "translated_IRT_ga.jsonl"   # adjust if needed
 
-def to_dpo_format(example):
+print("Loading dataset...")
+raw = load_dataset(DATASET, data_files={"train": DATA_FILE})  # explicit split
+
+print("Loading tokenizer/model...")
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True, subfolder=SUBFOLDER)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID, trust_remote_code=True, subfolder=SUBFOLDER, torch_dtype="auto", device_map="auto"
+)
+
+# If you want the model prompted in chat style, template ONLY the prompt (not completions)
+def to_dpo(example):
+    prompt_text = example["instruction"]
+    msgs = [{"role": "user", "content": prompt_text}]
+    # Disable thinking in Qwen3 template to keep prefix consistent
+    prompt = tokenizer.apply_chat_template(
+        msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False
+    )
     return {
-        "prompt": example["instruction"],
+        "prompt": prompt,
         "chosen": example["response1"],
-        "rejected": example["response2"]
+        "rejected": example["response2"],
     }
 
-dataset = raw_dataset["train"].map(to_dpo_format, remove_columns=raw_dataset["train"].column_names)
+dataset = raw["train"].map(to_dpo, remove_columns=raw["train"].column_names)
 
-# -------------------------
-# 2. Load base model + tokenizer
-# -------------------------
-print("Loading model and tokenizer...")
-model_id = "jmcinern/qwen3-8b-base-cpt"
-subfolder = "checkpoint-33000"
-
-tokenizer = AutoTokenizer.from_pretrained(
-    model_id,
-    trust_remote_code=True,
-    subfolder=subfolder
-)
-
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    torch_dtype="auto",
-    trust_remote_code=True,
-    subfolder=subfolder,
-    device_map="auto"
-)
-model.config.pad_token_id = tokenizer.pad_token_id
-
-
-# -------------------------
-# 3. Training setup
-# -------------------------
 print("Setting up DPO training...")
-training_args = TrainingArguments(
+args = DPOConfig(
+    output_dir="./qwen3-dpo-finetuned",
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
     learning_rate=5e-6,
     num_train_epochs=3,
     logging_steps=10,
-    output_dir="./qwen3-dpo-finetuned",
-    save_strategy="epoch"
+    save_strategy="epoch",
+    # DPO-specific knobs (optional, shown for clarity)
+    beta=0.1,                    # default
+    max_prompt_length=512,       # adjust as needed
+    max_completion_length=512,   # adjust as needed
+    bf16=True,                   # if your GPUs support bfloat16
 )
 
 trainer = DPOTrainer(
     model=model,
-    ref_model=None,  # TRL clones base model internally
-    args=training_args,
+    args=args,
     train_dataset=dataset,
-    processing_class=tokenizer
+    processing_class=tokenizer,  # <- correct per docs
+    # ref_model=None  # omit; trainer will clone a reference automatically
 )
 
-# -------------------------
-# 4. Train
-# -------------------------
 print("Starting training...")
 trainer.train()
-print("Training finished. Model saved at ./qwen3-dpo-finetuned")
+trainer.save_model("./qwen3-dpo-finetuned")
+tokenizer.save_pretrained("./qwen3-dpo-finetuned")
+print("Done.")
