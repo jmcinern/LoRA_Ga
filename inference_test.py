@@ -49,10 +49,12 @@ def main():
 
     print(f"[INFO] Special tokens -> EOS: {tok.eos_token!r}  PAD: {tok.pad_token!r}")
     messages = [{"role": "user", "content": TEST_PROMPT}]
+
     prompt = tok.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
     
+    prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
@@ -70,12 +72,9 @@ def main():
     gen_ids = outputs[0][inputs.input_ids.shape[1]:]
     text = tok.decode(gen_ids, skip_special_tokens=True)
 
-    # Hard-strip any accidental thinking block (belt-and-braces)
-    text_no_think = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
 
     print("[DEBUG] Output contains <think>?:", "<think>" in text)
     print("\n=== Model reply ===")
-    print(text_no_think.strip())
 
 if __name__ == "__main__":
     main()
