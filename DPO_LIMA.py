@@ -42,6 +42,8 @@ model = AutoModelForCausalLM.from_pretrained(
     subfolder=subfolder,
     device_map="auto"
 )
+model.config.pad_token_id = tokenizer.pad_token_id
+
 
 # -------------------------
 # 3. Training setup
