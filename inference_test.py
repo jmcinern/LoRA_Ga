@@ -11,7 +11,8 @@ OUTPUT_DIR = "qwen3-1p7b-lora-ga"   # must match your training output_dir
 TEST_PROMPT = "What is the capital city of America?"
 MAX_NEW_TOKENS = 128
 TEMPERATURE = 0.7
-TOP_P = 0.95
+TOP_P = 0.8
+TopK = 20
 # ---------------------------------
 
 def _latest_adapter_dir(root: str) -> str:
@@ -66,6 +67,7 @@ def main():
             do_sample=True,
             temperature=TEMPERATURE,
             top_p=TOP_P,
+            top_k=TopK,
             eos_token_id=tok.eos_token_id,
             pad_token_id=tok.pad_token_id,
         )
