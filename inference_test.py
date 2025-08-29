@@ -70,7 +70,7 @@ if use_lora:
     base = PeftModel.from_pretrained(base, lora_dir)
 
 # --- Test prompts ---
-prompts = ["What is the capital of Ireland?"]
+prompts = ["Answer in one word. What is the capital of Ireland?"]
 
 for p in prompts:
     print("\n[Prompt]", p)
