@@ -56,14 +56,11 @@ training_args = TrainingArguments(
     output_dir="./qwen3-dpo-finetuned",
     save_strategy="epoch"
 )
-dpo_cfg = DPOConfig(
-    beta=0.1,  # controls the strength of the preference signal
-)
+
 trainer = DPOTrainer(
     model=model,
     ref_model=None,  # TRL clones base model internally
     args=training_args,
-    dpo_config=dpo_cfg,
     train_dataset=dataset,
     tokenizer=tokenizer
 )
