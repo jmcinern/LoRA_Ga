@@ -13,6 +13,7 @@ MAX_NEW_TOKENS = 128
 TEMPERATURE = 0.7
 TOP_P = 0.8
 TopK = 20
+Min_P = 0.01
 # ---------------------------------
 
 def _latest_adapter_dir(root: str) -> str:
