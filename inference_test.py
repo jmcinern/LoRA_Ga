@@ -71,7 +71,7 @@ def main():
         )
 
     gen_ids = outputs[0][inputs.input_ids.shape[1]:]
-    text = tok.decode(gen_ids, skip_special_tokens=True)
+    text = tok.decode(gen_ids, skip_special_tokens=False)
 
 
     print("\n=== Model reply ===")
