@@ -85,9 +85,9 @@ model.config.use_cache = False  # good with grad checkpointing
 # ---------------------------
 MAX_LEN = 4096
 eval_split = "test" if "test" in ds else ("validation" if "validation" in ds else None)
-evaluation_strategy = "steps" if eval_split else "no"
+eval_strategy = "steps" if eval_split else "no"
 print("[INFO] Using eval split:", eval_split)
-print("[INFO] Evaluation strategy:", evaluation_strategy)
+print("[INFO] Evaluation strategy:", eval_strategy)
 
 sft_cfg = SFTConfig(
     output_dir="qwen3-1p7b-lora-ga",
@@ -106,7 +106,7 @@ sft_cfg = SFTConfig(
     save_strategy="steps",
     save_steps=20,
     bf16=True,
-    evaluation_strategy=evaluation_strategy,
+    eval_strategy=eval_strategy,
     eval_steps=100,
     optim="adamw_torch",
     gradient_checkpointing=True,
