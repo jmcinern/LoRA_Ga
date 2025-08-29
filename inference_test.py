@@ -33,6 +33,7 @@ print("IM_END_ID:", IM_END_ID, "EOT_ID:", EOT_ID)
 
 def encode_chat(prompt: str):
     msgs = [{"role": "user", "content": prompt}]
+    print(f"PROMPT TEMPLATED {tok.apply_chat_template(prompt, tokenize=False)}")
     return tok.apply_chat_template(msgs, add_generation_prompt=True,
                                    tokenize=True, return_tensors="pt")
 
