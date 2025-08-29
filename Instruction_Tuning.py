@@ -70,7 +70,7 @@ cfg = SFTConfig(
     group_by_length = True,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=16,
-    learning_rate=2e-3,
+    learning_rate=2e-4,
     warmup_ratio=0.03,
     num_train_epochs=1,
     lr_scheduler_type="cosine",
@@ -78,12 +78,13 @@ cfg = SFTConfig(
     logging_steps=20,
     save_steps=1000,
     eval_strategy="steps",
-    eval_steps=1000,
+    eval_steps=1000, 
     bf16=(dtype == torch.bfloat16),
     fp16=(dtype == torch.float16),
     optim="adamw_torch_fused",
     gradient_checkpointing=True,
     ddp_find_unused_parameters=False,
+    eos_token="<|im_end|>"
 )
 
 trainer = SFTTrainer(
