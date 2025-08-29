@@ -9,7 +9,7 @@ from peft import PeftModel
 BASE_ID = "Qwen/Qwen3-1.7B-Base"
 OUTPUT_DIR = "qwen3-1p7b-lora-ga"   # must match your training output_dir
 TEST_PROMPT = "Scríobh abairt shimplí i nGaeilge faoin aimsir inniu."
-MAX_NEW_TOKENS = 128
+MAX_NEW_TOKENS = 1024
 TEMPERATURE = 0.7
 TOP_P = 0.95
 # ---------------------------------
