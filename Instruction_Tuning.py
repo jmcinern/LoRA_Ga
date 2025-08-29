@@ -14,7 +14,6 @@ print("[INFO] Original splits:", list(ds.keys()))
 
 
 # print ds first sample
-print("[DEBUG] First sample:", ds[0])
 for split in ds:
     print(f"[INFO] {split} size before filter:", len(ds[split]))
 
