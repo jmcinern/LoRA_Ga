@@ -59,23 +59,28 @@ def main():
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
-    
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
             max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=True,
-            temperature=TEMPERATURE,
-            top_p=TOP_P,
-            eos_token_id=tok.eos_token_id,
-            pad_token_id=tok.pad_token_id,
+            do_sample=False,
+            #temperature=TEMPERATURE,
+            #top_p=TOP_P,
+            #eos_token_id=tok.eos_token_id,
+            #pad_token_id=tok.pad_token_id,
         )
 
     gen_ids = outputs[0][inputs.input_ids.shape[1]:]
     text = tok.decode(gen_ids, skip_special_tokens=True)
+
+
     print("\n=== Model reply ===")
     print(text.strip())
 
+    print("\n=== Special Tokens and IDs ===")
+    ids = tok.convert_tokens_to_ids
+    im_end, th, th_end = ids("<|im_end|>"), ids("<think>"), ids("</think>")
+    print("present:", im_end in gen_ids, th in gen_ids, th_end in gen_ids)
 
 if __name__ == "__main__":
     main()
