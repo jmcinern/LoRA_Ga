@@ -70,17 +70,12 @@ def main():
             #pad_token_id=tok.pad_token_id,
         )
 
-    gen_ids = outputs[0][inputs.input_ids.shape[1]:]
-    text = tok.decode(gen_ids, skip_special_tokens=True)
+    for i in range(10):
+        gen_ids = outputs[0][inputs.input_ids.shape[1]:]
+        text = tok.decode(gen_ids, skip_special_tokens=True)
+        print("\n=== Model reply ===")
+        print(text.strip())
 
-
-    print("\n=== Model reply ===")
-    print(text.strip())
-
-    print("\n=== Special Tokens and IDs ===")
-    ids = tok.convert_tokens_to_ids
-    im_end, th, th_end = ids("<|im_end|>"), ids("<think>"), ids("</think>")
-    print("present:", im_end in gen_ids, th in gen_ids, th_end in gen_ids)
 
 if __name__ == "__main__":
     main()
