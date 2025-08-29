@@ -5,6 +5,7 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model
 from trl import SFTTrainer, SFTConfig
+import re
 
 # ---------------------------
 # Load dataset & filter
@@ -49,11 +50,17 @@ ds = ds.map(to_messages, remove_columns=[c for c in cols if c != "messages"])
 print("[DEBUG] Sample messages:", ds["train"][0]["messages"])
 
 # Pre-render to plain text with thinking disabled
+THINK_RE = re.compile(r"<think>.*?</think>\s*", flags=re.DOTALL)
+
 def to_text(ex):
     txt = tokenizer.apply_chat_template(
-        ex["messages"], tokenize=False, enable_thinking=False  # training: no generation prompt
+        ex["messages"], tokenize=False, add_generation_prompt=False, enable_thinking=False
     )
+    if "<think>" in txt:
+        txt = THINK_RE.sub("", txt)  # hard-disable thinking
     return {"text": txt}
+
+ds = ds.map(to_text)
 
 ds = ds.map(to_text)
 print("[DEBUG] Templated text (first 500 chars):", ds["train"][0]["text"][:500].replace("\n", "\\n"))
