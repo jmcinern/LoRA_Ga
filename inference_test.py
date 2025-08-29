@@ -57,8 +57,8 @@ def generate(model, prompt: str):
     tail = tok.convert_ids_to_tokens(gen[-32:].tolist())
     print("stopped_early:", getattr(out, "stopped_early", None))
     print("finish_reason:", getattr(out, "sequences_scores", None))  # HF lacks finish_reason; inspect tokens instead
-    print("tail tokens:", tail)
-    print("last_id==IM_END:", gen.numel()>0 and gen[-1].item()==IM_END_ID)
+    #print("tail tokens:", tail)
+    #print("last_id==IM_END:", gen.numel()>0 and gen[-1].item()==IM_END_ID)
     text = tok.decode(gen, skip_special_tokens=False)
     return text
 
