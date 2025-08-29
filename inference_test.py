@@ -1,4 +1,3 @@
-# inference.py
 import os
 import re
 import torch
@@ -55,7 +54,7 @@ def main():
         messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
     
-    prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
+    #prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
@@ -77,5 +76,10 @@ def main():
     print("\n=== Model reply ===")
     print(text.strip())
 
-if __name__ == "__main__":
-    main()
+    print("\n=== Special Tokens and IDs ===")
+    ids = tok.convert_tokens_to_ids
+    im_end, th, th_end = ids("<|im_end|>"), ids("<think>"), ids("</think>")
+    print("present:", im_end in gen_ids, th in gen_ids, th_end in gen_ids)
+
+
+
