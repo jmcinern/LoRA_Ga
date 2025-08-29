@@ -52,7 +52,7 @@ def main():
     messages = [{"role": "user", "content": TEST_PROMPT}]
 
     prompt = tok.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=False, enable_thinking=False
+        messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
     
     prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
