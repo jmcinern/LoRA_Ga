@@ -76,5 +76,10 @@ def main():
     print("\n=== Model reply ===")
     print(text.strip())
 
+    print("\n=== Tokens and IDs ===")
+    tokens = tok.convert_ids_to_tokens(gen_ids)
+    for token, token_id in zip(tokens, gen_ids.tolist()):
+        print(f"{token!r}: {token_id}")
+
 if __name__ == "__main__":
     main()
