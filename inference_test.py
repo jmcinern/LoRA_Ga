@@ -38,7 +38,7 @@ def main():
     adapters_path = _latest_adapter_dir(OUTPUT_DIR)
 
     print("[INFO] Loading tokenizer and base model…")
-    tok = AutoTokenizer.from_pretrained(BASE_ID, trust_remote_code=True)
+    tok = AutoTokenizer.from_pretrained(adapters_path, trust_remote_code=True)
     base = AutoModelForCausalLM.from_pretrained(
         BASE_ID, torch_dtype="auto", device_map="auto", trust_remote_code=True
     )
