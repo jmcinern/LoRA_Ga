@@ -43,6 +43,7 @@ def main():
         BASE_ID, torch_dtype="auto", device_map="auto", trust_remote_code=True
     )
 
+
     print("[INFO] Attaching LoRA adapters…")
     model = PeftModel.from_pretrained(base, adapters_path)
     model.eval()
@@ -54,7 +55,7 @@ def main():
         messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
     )
     
-    prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
+    #prompt = re.sub(r"<think>.*?</think>\s*", "", prompt, flags=re.DOTALL)
     print("[DEBUG] Prompt preview:", prompt[:300].replace("\n", "\\n"))
 
     inputs = tok(prompt, return_tensors="pt").to(model.device)
@@ -76,10 +77,10 @@ def main():
     print("\n=== Model reply ===")
     print(text.strip())
 
-    print("\n=== Tokens and IDs ===")
-    tokens = tok.convert_ids_to_tokens(gen_ids)
-    for token, token_id in zip(tokens, gen_ids.tolist()):
-        print(f"{token!r}: {token_id}")
+    print("\n=== Special Tokens and IDs ===")
+    ids = tok.convert_tokens_to_ids
+    im_end, th, th_end = ids("<|im_end|>"), ids("<think>"), ids("</think>")
+    print("present:", im_end in gen_ids, th in gen_ids, th_end in gen_ids)
 
 if __name__ == "__main__":
     main()
