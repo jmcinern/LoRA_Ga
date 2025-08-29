@@ -73,8 +73,8 @@ def main():
     text = tok.decode(gen_ids, skip_special_tokens=True)
 
 
-    print("[DEBUG] Output contains <think>?:", "<think>" in text)
     print("\n=== Model reply ===")
+    print(text.strip())
 
 if __name__ == "__main__":
     main()
