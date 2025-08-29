@@ -10,6 +10,8 @@ from trl import SFTTrainer, SFTConfig
 # Load dataset & filter
 # ---------------------------
 ds = load_dataset("jmcinern/Instruction_Ga_En_for_LoRA")
+# get first 1K samples
+ds = ds["train"].select([i for i in list(range(1000)))
 print("[INFO] Original splits:", list(ds.keys()))
 for split in ds:
     print(f"[INFO] {split} size before filter:", len(ds[split]))
@@ -95,7 +97,7 @@ sft_cfg = SFTConfig(
     gradient_accumulation_steps=16,
     learning_rate=2e-4,
     warmup_ratio=0.03,
-    num_train_epochs=3,
+    num_train_epochs=1,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
     logging_steps=20,
