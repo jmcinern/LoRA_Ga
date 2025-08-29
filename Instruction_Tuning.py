@@ -75,7 +75,6 @@ sft_cfg = SFTConfig(
     save_strategy="steps",
     save_steps=50,
     bf16=True,
-    eval_strategy=eval_strategy, 
     eval_steps=100,
     optim="adamw_torch",
     gradient_checkpointing=True,
