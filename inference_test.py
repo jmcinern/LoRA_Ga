@@ -42,6 +42,8 @@ GEN_KW = dict(
     eos_token_id=[IM_END_ID, EOT_ID],
     pad_token_id=tok.pad_token_id,
     return_dict_in_generate=True,
+    temperature=0.6,
+    top_p=0.95,
 )
 
 def generate(model, prompt: str):
@@ -72,10 +74,9 @@ if use_lora:
 # --- Test prompts ---
 prompts = ["Answer in one word. What is the capital of Ireland?"]
 
-for p in prompts:
-    print("\n[Prompt]", p)
-    out = generate(base, p)
-    print("[Output]\n", out)
+for i in range(10):
+    for p in prompts:
+        print("\n[Prompt]", p)
+        out = generate(base, p)
+        print("[Output]\n", out)
 
-# Optional: then enable sampling to see behavior
-GEN_KW.update(dict(do_sample=True, temperature=0.7, top_p=0.9, no_repeat_ngram_size=4))
