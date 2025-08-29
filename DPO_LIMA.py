@@ -8,7 +8,10 @@ from trl import DPOTrainer
 # 1. Load and preprocess dataset
 # -------------------------
 print("Loading dataset...")
-raw_dataset = load_dataset("json", data_files="./translated_IRT_ga.jsonl")
+raw_dataset = load_dataset("jmcinern/LIMA_ga",
+                  data_files={"translated_IRT_ga.jsonl"}
+)
+                  
 
 def to_dpo_format(example):
     return {
