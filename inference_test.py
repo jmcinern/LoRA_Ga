@@ -32,7 +32,7 @@ print("specials:", tok.all_special_tokens)
 print("IM_END_ID:", IM_END_ID, "EOT_ID:", EOT_ID)
 
 def encode_chat(prompt: str):
-    msgs = [{"role": "user", "content": "Hello"}]
+    msgs = [{"role": "user", "content": prompt}]
     content = tok.apply_chat_template(msgs, add_generation_prompt=True,
                                     tokenize=False)
     content += "<think>\n\n</think>\n\n"
